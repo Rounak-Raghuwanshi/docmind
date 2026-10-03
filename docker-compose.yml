@@ -1,0 +1,55 @@
+# Docker is optional. Two ways to use this file:
+#
+#   docker compose up -d db redis          # just the data stores; run API/worker/frontend natively
+#   docker compose --profile app up        # everything in containers (API on :8000)
+#   docker compose --profile ollama up -d  # optional local LLM on :11434
+name: docmind
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: docmind
+      POSTGRES_PASSWORD: docmind
+      POSTGRES_DB: docmind
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U docmind"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  api:
+    profiles: [app]
+    build: ./backend
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://docmind:docmind@db:5432/docmind
+      REDIS_URL: redis://redis:6379
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LOCAL_STORAGE_DIR: /home/user/storage
+      PORT: "8000"
+    ports: ["8000:8000"]
+    volumes: [uploads:/home/user/storage]
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  ollama:
+    profiles: [ollama]
+    image: ollama/ollama:latest
+    ports: ["11434:11434"]
+    volumes: [ollama:/root/.ollama]
+
+volumes:
+  pgdata:
+  uploads:
+  ollama:

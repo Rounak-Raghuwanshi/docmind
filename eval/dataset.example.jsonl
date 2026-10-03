@@ -1,0 +1,10 @@
+// Write 40-50 questions by hand from YOUR demo documents, then save as eval/dataset.jsonl.
+// Open each PDF, find a fact, and record the file name and the page it is on.
+// Mix question styles: exact terms ("Section 80D"), paraphrases ("medical insurance for parents"),
+// numbers, definitions and multi-hop. Add ~10 unanswerable questions to tune the "not found" gate.
+{"question": "What is the maximum deduction under Section 80C?", "document": "Income-Tax-Act-1961.pdf", "page": 402}
+{"question": "How much can I claim for my parents' medical insurance?", "document": "Income-Tax-Act-1961.pdf", "pages": [412, 413]}
+{"question": "When must a supplier register for GST?", "document": "CGST-Act-2017.pdf", "page": 18}
+{"question": "What is the due date for filing GSTR-3B?", "document": "GST-Circular-2025.pdf", "page": 4}
+{"question": "Who won the 1998 football world cup?", "answerable": false}
+{"question": "What is the capital of Australia?", "answerable": false}

@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { useDeleteDocument, useDocuments, useReprocessDocument } from "@/api/documents";
 import type { DocumentItem } from "@/api/types";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui";
@@ -18,6 +17,8 @@ import { formatBytes, relativeTime } from "@/lib/format";
 import { useUi } from "@/stores/ui";
 import { DocumentStatusBadge, ProgressBar, progressOf } from "./DocumentStatusBadge";
 import { UploadDropzone } from "./UploadDropzone";
+import { notify } from "@/lib/notify";
+import { confirmDialog } from "@/stores/dialog";
 
 function IconButton({
   label,
@@ -108,7 +109,12 @@ function DocumentRow({ doc, canEdit }: { doc: DocumentItem; canEdit: boolean }) 
             {canEdit && (doc.status === "failed" || doc.status === "ready") && (
               <IconButton
                 label="Reprocess"
-                onClick={() => reprocess.mutate(doc.id, { onError: (e) => toast.error(e.message) })}
+                onClick={() =>
+                  reprocess.mutate(doc.id, {
+                    onSuccess: () => notify.info("Reprocessing started"),
+                    onError: (e) => notify.error(e),
+                  })
+                }
               >
                 <RefreshCw className="size-4" />
               </IconButton>
@@ -117,10 +123,19 @@ function DocumentRow({ doc, canEdit }: { doc: DocumentItem; canEdit: boolean }) 
               <IconButton
                 label="Delete"
                 danger
-                onClick={() => {
-                  if (confirm(`Delete “${doc.filename}”? Answers will no longer cite it.`)) {
-                    del.mutate(doc.id, { onError: (e) => toast.error(e.message) });
-                  }
+                onClick={async () => {
+                  const ok = await confirmDialog({
+                    title: `Delete “${doc.filename}”?`,
+                    description:
+                      "The file and its indexed passages are removed, and answers will no longer cite it.",
+                    confirmText: "Delete document",
+                    tone: "danger",
+                  });
+                  if (!ok) return;
+                  del.mutate(doc.id, {
+                    onSuccess: () => notify.success("Document deleted"),
+                    onError: (e) => notify.error(e),
+                  });
                 }}
               >
                 <Trash2 className="size-4" />

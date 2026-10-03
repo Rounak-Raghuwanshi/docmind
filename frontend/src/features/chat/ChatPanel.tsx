@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Lightbulb, MessageSquareText } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { createConversation, useConversation, useUpdateConversation } from "@/api/chat";
 import { useDocuments } from "@/api/documents";
 import { keys } from "@/api/keys";
@@ -13,6 +12,7 @@ import { useChatStore } from "@/stores/chat";
 import { ChatMessage, type DisplayMessage } from "./ChatMessage";
 import { Composer } from "./Composer";
 import { DocumentFilter } from "./DocumentFilter";
+import { notify } from "@/lib/notify";
 
 function SuggestedQuestions({
   questions,
@@ -88,7 +88,7 @@ export function ChatPanel({ conversationId }: { conversationId?: string }) {
       void ask(created.id, question);
       setPendingFilter([]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't start the conversation");
+      notify.error(e, "Couldn't start the conversation");
     } finally {
       setStarting(false);
     }
@@ -98,7 +98,7 @@ export function ChatPanel({ conversationId }: { conversationId?: string }) {
     if (!conversationId) return setPendingFilter(ids);
     updateConv.mutate(
       { id: conversationId, document_ids: ids.length ? ids : null },
-      { onError: (e) => toast.error(e.message) },
+      { onError: (e) => notify.error(e) },
     );
   }
 

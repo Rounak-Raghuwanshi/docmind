@@ -166,6 +166,8 @@ docs/               setup, deployment, configuration, architecture
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design decisions and trade-offs |
 | [COMPLETE_GUIDE_HINGLISH.md](docs/COMPLETE_GUIDE_HINGLISH.md) | The whole approach, a feature tour and interview prep (Hinglish) |
 | [CONCEPTS_HINGLISH.md](docs/CONCEPTS_HINGLISH.md) | Every backend, frontend, AI and DevOps concept from scratch (Hinglish) |
+| [BACKEND_EXPLAINED.md](docs/BACKEND_EXPLAINED.md) | Every backend part in depth, including how RAG and the LLM are used (Hinglish) |
+| [FRONTEND_EXPLAINED.md](docs/FRONTEND_EXPLAINED.md) | Every frontend part in depth: streaming, PDF highlight, dialogs, animations, 3D (Hinglish) |
 | [HOW_AI_BUILT_THIS.md](docs/HOW_AI_BUILT_THIS.md) | How an AI coding agent was used, honestly |
 
 ## Testing

@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { toast } from "sonner";
 import { keys } from "@/api/keys";
 import type { Citation, ConversationDetail } from "@/api/types";
 import { rawFetch, STREAM_URL, toApiError } from "@/lib/api";
 import { readSse } from "@/lib/sse";
 import { useChatStore } from "@/stores/chat";
+import { notify } from "@/lib/notify";
 
 /** Ask a question and stream the answer into the chat store. */
 export function useAsk() {
@@ -75,7 +75,7 @@ export function useAsk() {
               ? `You're asking too quickly. Try again in ${e.retryAfter ?? 60}s.`
               : (e.message ?? "Couldn't reach the server");
           update(convId, { status: "error", error: message });
-          toast.error(message);
+          notify.error(message);
         }
       } finally {
         // Swap the streamed answer for the saved message once the server has it.

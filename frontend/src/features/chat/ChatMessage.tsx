@@ -3,7 +3,6 @@ import { AlertTriangle, Search, StopCircle, ThumbsDown, ThumbsUp, Zap } from "lu
 import { useState } from "react";
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { toast } from "sonner";
 import { sendFeedback } from "@/api/chat";
 import type { Citation, Message } from "@/api/types";
 import { Badge } from "@/components/ui";
@@ -11,6 +10,8 @@ import { linkCitations } from "@/lib/citations";
 import { cn, formatMs } from "@/lib/format";
 import { CitationChip } from "./CitationChip";
 import { SourcesDebug } from "./SourcesDebug";
+import { notify } from "@/lib/notify";
+import { promptDialog } from "@/stores/dialog";
 
 export interface DisplayMessage extends Pick<
   Message,
@@ -60,10 +61,18 @@ function Feedback({
   const [rating, setRating] = useState<1 | -1 | null>(initial ?? null);
   const qc = useQueryClient();
   async function rate(value: 1 | -1) {
-    const comment =
-      value === -1
-        ? (prompt("What was wrong with this answer? (optional)") ?? undefined)
-        : undefined;
+    let comment: string | undefined;
+    if (value === -1) {
+      const text = await promptDialog({
+        title: "What was wrong with this answer?",
+        description: "Optional. Your note helps the workspace owner improve the documents.",
+        placeholder: "e.g. It missed the limit for senior citizens",
+        confirmText: "Send feedback",
+        multiline: true,
+      });
+      if (text === null) return; // cancelled: don't record a rating
+      comment = text.trim() || undefined;
+    }
     const prev = rating;
     setRating(value);
     try {
@@ -71,7 +80,7 @@ function Feedback({
       qc.invalidateQueries({ queryKey: ["conversations", conversationId] });
     } catch {
       setRating(prev);
-      toast.error("Couldn't save your feedback");
+      notify.error("Couldn't save your feedback");
     }
   }
   return (

@@ -1,7 +1,6 @@
 import { Check, Copy, Link2, LogOut, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import type { Role } from "@/api/types";
 import {
   useChangeRole,
@@ -14,6 +13,8 @@ import {
 import { Badge, Button, ErrorState, Field, Skeleton } from "@/components/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { hasRole, useCurrentWorkspace } from "./useWorkspaceContext";
+import { notify } from "@/lib/notify";
+import { confirmDialog } from "@/stores/dialog";
 
 function Section({
   title,
@@ -69,7 +70,7 @@ function Members() {
                 onChange={(e) =>
                   changeRole.mutate(
                     { userId: m.user_id, role: e.target.value as Role },
-                    { onError: (err) => toast.error(err.message) },
+                    { onError: (err) => notify.error(err) },
                   )
                 }
                 className="rounded-lg border border-slate-300 bg-white px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-900"
@@ -88,11 +89,29 @@ function Members() {
                 variant="ghost"
                 size="sm"
                 aria-label={me ? "Leave workspace" : `Remove ${m.full_name}`}
-                onClick={() => {
-                  if (!confirm(me ? "Leave this workspace?" : `Remove ${m.full_name}?`)) return;
+                onClick={async () => {
+                  const ok = await confirmDialog(
+                    me
+                      ? {
+                          title: "Leave this workspace?",
+                          description: `You'll lose access to “${ws.name}” until someone invites you again.`,
+                          confirmText: "Leave",
+                          tone: "danger",
+                        }
+                      : {
+                          title: `Remove ${m.full_name}?`,
+                          description: `They'll lose access to “${ws.name}” and its documents.`,
+                          confirmText: "Remove",
+                          tone: "danger",
+                        },
+                  );
+                  if (!ok) return;
                   remove.mutate(m.user_id, {
-                    onSuccess: () => me && navigate("/w"),
-                    onError: (err) => toast.error(err.message),
+                    onSuccess: () => {
+                      notify.success(me ? "You left the workspace" : `${m.full_name} was removed`);
+                      if (me) navigate("/w");
+                    },
+                    onError: (err) => notify.error(err),
                   });
                 }}
               >
@@ -127,7 +146,7 @@ function Invites() {
           </select>
         </label>
         <Button
-          onClick={() => create.mutate(role, { onError: (e) => toast.error(e.message) })}
+          onClick={() => create.mutate(role, { onError: (e) => notify.error(e) })}
           loading={create.isPending}
         >
           <Link2 className="size-4" aria-hidden /> Create invite link
@@ -179,8 +198,8 @@ export function SettingsPage() {
     e.preventDefault();
     if (name.trim() && name.trim() !== ws.name) {
       rename.mutate(name.trim(), {
-        onSuccess: () => toast.success("Workspace renamed"),
-        onError: (err) => toast.error(err.message),
+        onSuccess: () => notify.success("Workspace renamed"),
+        onError: (err) => notify.error(err),
       });
     }
   }
@@ -245,10 +264,10 @@ export function SettingsPage() {
                 onClick={() =>
                   del.mutate(undefined, {
                     onSuccess: () => {
-                      toast.success("Workspace deleted");
+                      notify.success("Workspace deleted");
                       navigate("/w", { replace: true });
                     },
-                    onError: (err) => toast.error(err.message),
+                    onError: (err) => notify.error(err),
                   })
                 }
               >

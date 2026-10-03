@@ -2,7 +2,9 @@ import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-qu
 import { Loader2 } from "lucide-react";
 import { lazy, Suspense, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
+import { DialogHost } from "@/components/DialogHost";
+import { notify } from "@/lib/notify";
 import { Logo } from "@/components/ui";
 import { AuthProvider } from "@/features/auth/AuthProvider";
 import { LoginPage, RegisterPage } from "@/features/auth/AuthPages";
@@ -37,7 +39,7 @@ const queryClient = new QueryClient({
   queryCache: new QueryCache({
     // Background refetch failures surface as a toast; first-load failures render inline.
     onError: (error, query) => {
-      if (query.state.data !== undefined) toast.error(`Couldn't refresh: ${error.message}`);
+      if (query.state.data !== undefined) notify.error(`Couldn't refresh: ${error.message}`);
     },
   }),
 });
@@ -117,7 +119,8 @@ export default function App() {
           <RouterProvider router={router} />
         </AuthProvider>
       </ServerWakeGate>
-      <Toaster richColors position="bottom-right" theme={theme} />
+      <DialogHost />
+      <Toaster richColors closeButton position="bottom-right" theme={theme} />
     </QueryClientProvider>
   );
 }

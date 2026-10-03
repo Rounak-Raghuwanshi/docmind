@@ -1,10 +1,11 @@
 import { MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
 import { useConversations, useDeleteConversation, useUpdateConversation } from "@/api/chat";
 import { Button, EmptyState, Skeleton } from "@/components/ui";
 import { cn, relativeTime } from "@/lib/format";
+import { notify } from "@/lib/notify";
+import { confirmDialog } from "@/stores/dialog";
 
 export function ConversationList({ ws }: { ws: string }) {
   const { data, isLoading } = useConversations(ws);
@@ -18,7 +19,7 @@ export function ConversationList({ ws }: { ws: string }) {
   function commitRename(id: string) {
     const t = title.trim();
     setEditing(null);
-    if (t) rename.mutate({ id, title: t }, { onError: (e) => toast.error(e.message) });
+    if (t) rename.mutate({ id, title: t }, { onError: (e) => notify.error(e) });
   }
 
   return (
@@ -91,9 +92,18 @@ export function ConversationList({ ws }: { ws: string }) {
                     <button
                       type="button"
                       aria-label={`Delete ${c.title}`}
-                      onClick={() => {
-                        if (!confirm("Delete this conversation?")) return;
-                        remove.mutate(c.id, { onError: (e) => toast.error(e.message) });
+                      onClick={async () => {
+                        const ok = await confirmDialog({
+                          title: "Delete this conversation?",
+                          description: `“${c.title}” and all its messages will be removed. This can't be undone.`,
+                          confirmText: "Delete",
+                          tone: "danger",
+                        });
+                        if (!ok) return;
+                        remove.mutate(c.id, {
+                          onSuccess: () => notify.success("Conversation deleted"),
+                          onError: (e) => notify.error(e),
+                        });
                         if (conv === c.id) navigate(`/w/${ws}`);
                       }}
                       className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-600 dark:hover:bg-slate-700"

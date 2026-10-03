@@ -60,6 +60,10 @@ def test_cache_key_normalises_question_and_tracks_corpus_version() -> None:
     assert k != answer_cache_key(uuid.uuid4(), 1, None, "What is 80D?")  # other tenant
     assert answer_cache_key(ws, 1, [d1, d2], "q") == answer_cache_key(ws, 1, [d2, d1], "q")
     assert answer_cache_key(ws, 1, [d1], "q") != answer_cache_key(ws, 1, None, "q")
+    # a different model never serves another model's cached answers
+    assert answer_cache_key(ws, 1, None, "q", "openai:llama") != answer_cache_key(
+        ws, 1, None, "q", "none:extractive"
+    )
     assert normalise_question("Hello World?!") == "hello world"
 
 

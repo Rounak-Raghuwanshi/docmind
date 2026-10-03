@@ -28,6 +28,7 @@ from app.llm.base import LLMClient, LLMError, StreamResult
 from app.logging_setup import request_id_var
 from app.models import Conversation, Message, Workspace
 from app.rag.citations import build_citations, strip_invalid_markers
+from app.rag.extractive import extractive_answer
 from app.rag.prompts import NOT_FOUND_ANSWER, answer_messages, rewrite_messages
 from app.rag.tokens import count_tokens
 from app.redis_client import get_arq
@@ -105,7 +106,7 @@ class ChatService:
             return conv, ws, history, is_first
 
     async def _rewrite(self, history: list[tuple[str, str]], question: str) -> str:
-        if not history:
+        if not history or self.settings.llm_provider == "none":
             return question
         try:
             rewritten = await self.llm.complete(rewrite_messages(history, question), max_tokens=120)
@@ -129,14 +130,15 @@ class ChatService:
 
         try:
             conv, ws, history, is_first = await self._prepare(conversation_id, question)
-            if is_first:
+            if is_first and self.settings.llm_provider != "none":
                 await self._enqueue_title(conv.id, question)
 
             ans.rewritten = await self._rewrite(history, question)
             yield sse("meta", {"message_id": str(ans.id), "rewritten_question": ans.rewritten})
 
+            answerer = f"{self.settings.llm_provider}:{self.llm.model}"
             cache_key = answer_cache_key(
-                ws.id, ws.corpus_version, conv.document_filter, ans.rewritten
+                ws.id, ws.corpus_version, conv.document_filter, ans.rewritten, answerer
             )
             cached = await get_cached_answer(self.redis, cache_key)
             if cached is not None:
@@ -161,6 +163,16 @@ class ChatService:
                     ans.first_token_ms = elapsed()
                     ans.content = NOT_FOUND_ANSWER
                     yield sse("token", {"text": NOT_FOUND_ANSWER})
+                elif self.settings.llm_provider == "none":
+                    # No LLM configured: quote the best-matching sentences, still cited.
+                    sources = [c.as_source() for c in result.chunks]
+                    ans.model = "extractive"
+                    text = extractive_answer(ans.rewritten, sources, result.top_rerank_score)
+                    ans.first_token_ms = elapsed()
+                    for piece in _CACHED_TOKEN.findall(text):
+                        ans.content += piece
+                        yield sse("token", {"text": piece})
+                    ans.citations = build_citations(ans.content, sources)
                 else:
                     sources = [c.as_source() for c in result.chunks]
                     ans.model = self.llm.model

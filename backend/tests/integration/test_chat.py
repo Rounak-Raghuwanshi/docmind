@@ -267,3 +267,21 @@ async def test_health_and_ready(api: Api) -> None:
     assert r.status_code == 200 and r.json()["checks"] == {"database": "ok", "redis": "ok"}
     assert r.headers["X-Request-ID"]
     assert r.headers["X-Content-Type-Options"] == "nosniff"
+
+
+async def test_no_llm_mode_answers_with_quoted_sentences(
+    api: Api, ingestor: Ingestor, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(get_settings(), "llm_provider", "none")
+    user, ws, doc_id = await _ready_workspace(api, ingestor)
+    conv = await _conversation(api, user, ws)
+    events = await api.ask(
+        user, conv, "What deduction does section 80D allow for health insurance premiums?"
+    )
+    answer = "".join(d["text"] for e, d in events if e == "token")
+    assert "80D" in answer and "[1]" in answer
+    assert "According to the documents, the answer is stated clearly" not in answer  # not FakeLLM
+    citations = dict(events)["citations"]
+    assert citations and citations[0]["document_id"] == doc_id
+    detail = (await api.client.get(f"/api/conversations/{conv}", headers=user["headers"])).json()
+    assert detail["messages"][1]["model"] == "extractive"

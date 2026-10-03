@@ -35,6 +35,7 @@ from app.models import (
 )
 from app.rag.citations import build_citations
 from app.rag.embedder import get_embedder
+from app.rag.extractive import extractive_answer
 from app.rag.ocr import tesseract_available
 from app.rag.prompts import NOT_FOUND_ANSWER
 from app.rag.reranker import get_reranker
@@ -345,69 +346,6 @@ ENG_TRAFFIC = [
 # --------------------------------------------------------------------------------------
 
 
-_SENTENCE = re.compile(r"(?<=[.!?])\s+")
-_WORD = re.compile(r"[a-z0-9]+")
-_STOP = {
-    "the",
-    "and",
-    "for",
-    "what",
-    "who",
-    "how",
-    "when",
-    "does",
-    "are",
-    "is",
-    "can",
-    "must",
-    "with",
-    "this",
-    "that",
-    "from",
-    "under",
-    "which",
-    "now",
-}
-
-
-def _stems(text: str) -> set[str]:
-    """Crude stemming: "invoices" and "invoicing" both become "invoi"."""
-    return {w[:5] for w in _WORD.findall(text.lower()) if len(w) > 2 and w not in _STOP}
-
-
-def _best_sentence(question: str, text: str) -> str:
-    q = _stems(question)
-    sentences = [
-        s.strip()
-        for line in text.split("\n")
-        for s in _SENTENCE.split(line)
-        if len(s.strip()) > 30 and s.strip()[-1] in ".!?:"  # skip headings
-    ]
-    if not sentences:
-        return text[:240]
-    return max(sentences, key=lambda s: len(q & _stems(s)))
-
-
-def extractive_answer(question: str, sources: list[dict[str, object]]) -> str:
-    """A grounded answer made of the most relevant sentence from the top sources."""
-    first = _best_sentence(question, str(sources[0]["content"]))
-    lead = first[0].lower() + first[1:] if first[1:2].islower() else first
-    answer = f"According to the documents, {lead} [1]"
-    if len(sources) > 1:
-        second = _best_sentence(question, str(sources[1]["content"]))
-        if (
-            second != first
-            and len(set(_WORD.findall(second.lower())) & set(_WORD.findall(question.lower()))) >= 2
-        ):
-            answer += f"\n\nRelated: {second} [2]"
-    return answer
-
-
-# Below this rerank score the passages pass the gate but barely match. A real LLM, told to
-# answer only from the sources, says it can't find a direct answer, and the seed does the same.
-WEAK_MATCH = -0.5
-
-
 def renumber(answer: str, expect: dict[int, str], sources: list[dict[str, object]]) -> str | None:
     """Point each scripted [n] at whichever retrieved source actually contains its fact.
 
@@ -429,14 +367,6 @@ def renumber(answer: str, expect: dict[int, str], sources: list[dict[str, object
         mapping[n] = idx
     return re.sub(
         r"\[(\d+)\]", lambda m: f"[{mapping.get(int(m.group(1)), int(m.group(1)))}]", answer
-    )
-
-
-def weak_match_answer(question: str, sources: list[dict[str, object]]) -> str:
-    closest = _best_sentence(question, str(sources[0]["content"]))
-    return (
-        "I couldn't find a direct answer to this in your documents. The closest passage I found "
-        f"says: “{closest}” [1]\n\nYou may need to upload a document that covers this topic."
     )
 
 
@@ -602,11 +532,7 @@ class Seeder:
         if answer and turn and turn.expect:
             answer = renumber(answer, turn.expect, sources)
         if not answer:
-            answer = (
-                extractive_answer(query, sources)
-                if top is None or top >= WEAK_MATCH
-                else weak_match_answer(query, sources)
-            )
+            answer = extractive_answer(query, sources, top)
         return answer, build_citations(answer, sources), False, result
 
     async def _chats(self, ws: Workspace, chats: list[Chat], traffic: list[str]) -> None:

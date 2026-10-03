@@ -22,9 +22,12 @@ def answer_cache_key(
     corpus_version: int,
     document_filter: list[uuid.UUID] | None,
     question: str,
+    answerer: str = "",
 ) -> str:
+    """`answerer` identifies what writes answers (provider + model): switching models must not
+    keep serving answers written by the previous one."""
     filter_part = ",".join(sorted(str(d) for d in document_filter)) if document_filter else "*"
-    raw = f"{workspace_id}|{corpus_version}|{filter_part}|{normalise_question(question)}"
+    raw = f"{workspace_id}|{corpus_version}|{filter_part}|{answerer}|{normalise_question(question)}"
     return "ans:" + hashlib.sha256(raw.encode()).hexdigest()
 
 

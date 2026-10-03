@@ -4,7 +4,7 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 
-from app.llm.base import StreamResult
+from app.llm.base import LLMError, StreamResult
 
 FAKE_ANSWER = (
     "According to the documents, the answer is stated clearly [1]. It also notes a detail [2]."
@@ -48,3 +48,19 @@ class FakeLLM:
         if "title" in system.lower():
             return "Fake conversation title"
         return messages[-1]["content"].rsplit("Latest question:", 1)[-1].strip()
+
+
+class NoLLM:
+    """LLM_PROVIDER=none: there is no language model. The chat service answers extractively;
+    optional extras (follow-up rewriting, titles, summaries) fail softly and are skipped."""
+
+    model = "extractive"
+
+    async def stream(
+        self, messages: list[dict[str, str]], *, max_tokens: int, result: StreamResult
+    ) -> AsyncIterator[str]:
+        raise LLMError("No language model is configured (LLM_PROVIDER=none)")
+        yield ""  # pragma: no cover - makes this an async generator
+
+    async def complete(self, messages: list[dict[str, str]], *, max_tokens: int) -> str:
+        raise LLMError("No language model is configured (LLM_PROVIDER=none)")

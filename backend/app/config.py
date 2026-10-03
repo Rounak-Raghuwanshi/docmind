@@ -46,7 +46,9 @@ class Settings(BaseSettings):
     s3_secret_key: SecretStr | None = None
 
     # LLM (any OpenAI-compatible endpoint: Ollama, Groq, Gemini, ...)
-    llm_provider: Literal["openai", "fake"] = "openai"
+    # openai = any OpenAI-compatible API; none = no LLM (answers quote the best sentences);
+    # fake = canned test answers.
+    llm_provider: Literal["openai", "none", "fake"] = "openai"
     llm_base_url: str = "http://localhost:11434/v1"
     llm_api_key: SecretStr = SecretStr("ollama")
     llm_model: str = "llama3.2:3b"

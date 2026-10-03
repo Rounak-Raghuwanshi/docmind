@@ -20,6 +20,7 @@ export interface DisplayMessage extends Pick<
   citations: Citation[] | null; // null while streaming (markers not yet validated)
   feedback?: 1 | -1 | null;
   error?: string | null;
+  model?: string | null;
 }
 
 function AnswerMarkdown({ text, citations }: { text: string; citations: Citation[] | null }) {
@@ -168,6 +169,11 @@ export function ChatMessage({
             </Badge>
           )}
           {message.status === "error" && <Badge tone="red">Error</Badge>}
+          {message.model === "extractive" && (
+            <span title="No AI model is configured, so this answer quotes the best-matching sentences directly. Set LLM_PROVIDER and an API key in backend/.env for written answers.">
+              <Badge>Quoted from documents · no LLM</Badge>
+            </span>
+          )}
           {message.cached && (
             <Badge tone="brand">
               <Zap className="size-3" aria-hidden /> Cached

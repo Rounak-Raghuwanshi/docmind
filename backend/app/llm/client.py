@@ -92,6 +92,10 @@ def _friendly(e: openai.APIError) -> str:
 @lru_cache
 def get_llm() -> LLMClient:
     s = get_settings()
+    if s.llm_provider == "none":
+        from app.llm.fake import NoLLM
+
+        return NoLLM()
     if s.llm_provider == "fake":
         from app.llm.fake import FakeLLM
 

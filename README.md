@@ -103,7 +103,7 @@ Design decisions and trade-offs, with interview-style Q&A, are in
 | Data | PostgreSQL 16 + pgvector (HNSW, GIN full-text), Redis |
 | ML | fastembed (ONNX, CPU): `BAAI/bge-small-en-v1.5` embeddings, `ms-marco-MiniLM-L-6-v2` cross-encoder; PyMuPDF; Tesseract OCR |
 | LLM | Any OpenAI-compatible API: Ollama locally, Groq or Gemini in production |
-| Quality | pytest (74 tests, ~91% coverage, real Postgres + Redis), Vitest + Testing Library, ruff, mypy, ESLint, Prettier |
+| Quality | pytest (81 tests, ~91% coverage, real Postgres + Redis), Vitest + Testing Library, ruff, mypy, ESLint, Prettier |
 | Delivery | GitHub Actions → Hugging Face Spaces (Docker) + Vercel; Supabase (Postgres + Storage) |
 
 ## Run it locally

@@ -2,7 +2,12 @@ import uuid
 
 import pytest
 
-from app.rag.citations import build_citations, cited_numbers, strip_invalid_markers
+from app.rag.citations import (
+    build_citations,
+    cited_numbers,
+    normalise_markers,
+    strip_invalid_markers,
+)
 from app.rag.fusion import reciprocal_rank_fusion
 from app.repositories.retrieval import keyword_query
 from app.services.cache import answer_cache_key, normalise_question
@@ -75,3 +80,9 @@ def test_keyword_query_ors_terms_and_keeps_codes() -> None:
     assert "GSTR-3B" in keyword_query("When is GSTR-3B due?")
     assert keyword_query("and or not") == ""
     assert keyword_query("???") == ""
+
+
+def test_full_width_citation_brackets_are_normalised() -> None:
+    # split across tokens, as a stream would deliver it
+    assert "".join(normalise_markers(t) for t in ["₹50,000【", "1】."]) == "₹50,000[1]."
+    assert cited_numbers(normalise_markers("A【2】【1】")) == [2, 1]

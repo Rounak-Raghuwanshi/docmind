@@ -27,7 +27,7 @@ from app.config import Settings
 from app.llm.base import LLMClient, LLMError, StreamResult
 from app.logging_setup import request_id_var
 from app.models import Conversation, Message, Workspace
-from app.rag.citations import build_citations, strip_invalid_markers
+from app.rag.citations import build_citations, normalise_markers, strip_invalid_markers
 from app.rag.extractive import extractive_answer
 from app.rag.prompts import NOT_FOUND_ANSWER, answer_messages, rewrite_messages
 from app.rag.tokens import count_tokens
@@ -182,7 +182,8 @@ class ChatService:
                         max_tokens=self.settings.llm_max_tokens,
                         result=usage,
                     )
-                    async for delta in stream:
+                    async for raw_delta in stream:
+                        delta = normalise_markers(raw_delta)
                         if ans.first_token_ms is None:
                             ans.first_token_ms = elapsed()
                         ans.content += delta

@@ -3,6 +3,14 @@ from typing import Any
 
 _MARKER = re.compile(r"\[(\d{1,2})\]")
 
+# Some models (e.g. gpt-oss) cite with full-width lenticular brackets: 【1】. Mapping single
+# characters works even when a marker is split across two streamed tokens.
+_BRACKETS = str.maketrans({"【": "[", "】": "]", "［": "[", "］": "]"})
+
+
+def normalise_markers(text: str) -> str:
+    return text.translate(_BRACKETS)
+
 
 def cited_numbers(answer: str) -> list[int]:
     """Distinct [n] markers in order of first appearance."""

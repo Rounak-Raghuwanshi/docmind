@@ -29,6 +29,7 @@ from app.logging_setup import request_id_var
 from app.models import Conversation, Message, Workspace
 from app.rag.citations import build_citations, normalise_markers, strip_invalid_markers
 from app.rag.extractive import extractive_answer
+from app.rag.gate import GateConfig, decide
 from app.rag.prompts import NOT_FOUND_ANSWER, answer_messages, rewrite_messages
 from app.rag.tokens import count_tokens
 from app.redis_client import get_arq
@@ -196,6 +197,9 @@ class ChatService:
                         ans.content, set(range(1, len(sources) + 1))
                     )
                     ans.citations = build_citations(ans.content, sources)
+                    # An answer that cites nothing isn't grounded in the documents: usually the
+                    # model saying it couldn't find the answer. Count it as "not found".
+                    ans.not_found = not ans.citations
 
             yield sse("citations", ans.citations)
             ans.total_ms = elapsed()
@@ -221,10 +225,9 @@ class ChatService:
                     await self._save(conv.id, ans, cache_key)
 
     def _below_relevance_gate(self, result: RetrievalResult) -> bool:
-        if not result.chunks:
-            return True
-        top = result.top_rerank_score
-        return top is not None and top < self.settings.relevance_threshold
+        s = self.settings
+        cfg = GateConfig(s.relevance_threshold, s.relevance_floor, s.relevance_agree_rank)
+        return decide(result.chunks, result.reranked, cfg) == "refuse"
 
     async def _save(self, conversation_id: uuid.UUID, ans: _Answer, cache_key: str | None) -> None:
         if ans.status != "complete" and ans.content:
@@ -260,7 +263,9 @@ class ChatService:
         except Exception:
             log.exception("failed to save assistant message", extra={"message_id": str(ans.id)})
             return
-        if ans.status == "complete" and not ans.cached and cache_key:
+        # Refusals aren't cached: they cost no LLM call to recompute, and a cached "not found"
+        # would outlive fixes to retrieval or the gate (corpus_version only tracks documents).
+        if ans.status == "complete" and not ans.cached and not ans.not_found and cache_key:
             await set_cached_answer(
                 self.redis,
                 cache_key,

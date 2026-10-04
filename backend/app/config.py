@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 6
     rrf_k: int = 60
     relevance_threshold: float = -2.0
+    # Passages both retrievers rank in their top-N still count as relevant down to this
+    # rerank score (the English reranker underrates non-English text). See app/rag/gate.py.
+    relevance_floor: float = -9.0
+    relevance_agree_rank: int = 5
     hnsw_ef_search: int = 100
     hnsw_iterative_scan: bool = True
     history_messages_for_rewrite: int = 4

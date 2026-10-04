@@ -285,3 +285,28 @@ async def test_no_llm_mode_answers_with_quoted_sentences(
     assert citations and citations[0]["document_id"] == doc_id
     detail = (await api.client.get(f"/api/conversations/{conv}", headers=user["headers"])).json()
     assert detail["messages"][1]["model"] == "extractive"
+
+
+async def test_uncited_llm_answer_counts_as_not_found(api: Api, ingestor: Ingestor) -> None:
+    user, ws, _ = await _ready_workspace(api, ingestor)
+    conv = await _conversation(api, user, ws)
+    app_chat = api.client._transport.app.state.chat  # type: ignore[attr-defined]
+    original = app_chat.llm
+    app_chat.llm = FakeLLM(answer="I could not find this in the documents.")
+    try:
+        events = await api.ask(
+            user, conv, "What deduction does section 80D allow for health insurance?"
+        )
+    finally:
+        app_chat.llm = original
+    assert dict(events)["citations"] == []
+    assert dict(events)["done"]["not_found"] is True
+
+
+async def test_not_found_answers_are_not_cached(api: Api, ingestor: Ingestor) -> None:
+    user, ws, _ = await _ready_workspace(api, ingestor)
+    q = "Who won the football world cup in 1998?"
+    first = await api.ask(user, await _conversation(api, user, ws), q)
+    second = await api.ask(user, await _conversation(api, user, ws), q)
+    assert dict(first)["done"]["not_found"] and dict(second)["done"]["not_found"]
+    assert dict(second)["done"]["cached"] is False

@@ -22,7 +22,7 @@ seed:            ## Load demo users, workspaces, documents and chats (RESET=1 to
 	cd backend && .venv/bin/python -m app.cli seed $(if $(RESET),--reset,)
 
 api:             ## Run the API with auto-reload on :8000
-	cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000
+	cd backend && .venv/bin/uvicorn app.main:app --reload --port 8000 --timeout-graceful-shutdown 3
 
 worker:          ## Run the ingestion worker
 	cd backend && .venv/bin/arq app.workers.settings.WorkerSettings

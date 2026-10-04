@@ -20,6 +20,8 @@ import {
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { TiltCard } from "@/components/TiltCard";
 import { Logo } from "@/components/ui";
 import { DemoButton } from "@/features/auth/AuthPages";
@@ -123,6 +125,7 @@ function CountUp({ to, suffix = "" }: { to: number; suffix?: string }) {
 }
 
 export function LandingPage() {
+  const { status } = useAuth();
   return (
     <div className="min-h-full overflow-x-hidden bg-white dark:bg-slate-950">
       <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/70 backdrop-blur-lg dark:border-slate-800/60 dark:bg-slate-950/70">
@@ -130,18 +133,32 @@ export function LandingPage() {
           <Logo className="text-lg" />
           <nav className="flex items-center gap-2">
             <ThemeToggle />
-            <Link
-              to="/login"
-              className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/register"
-              className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
-            >
-              Get started
-            </Link>
+            {status === "authenticated" ? (
+              <>
+                <Link
+                  to="/w"
+                  className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                >
+                  Open app
+                </Link>
+                <UserMenu />
+              </>
+            ) : status === "anonymous" ? (
+              <>
+                <Link
+                  to="/login"
+                  className="rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  to="/register"
+                  className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                >
+                  Get started
+                </Link>
+              </>
+            ) : null}
           </nav>
         </div>
       </header>

@@ -1,18 +1,9 @@
 import { motion } from "framer-motion";
-import {
-  BarChart3,
-  ChevronDown,
-  FileText,
-  LogOut,
-  MessageSquare,
-  Settings,
-  Sparkles,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { BarChart3, ChevronDown, FileText, MessageSquare, Settings, Sparkles } from "lucide-react";
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
-import { logout } from "@/api/auth";
 import { useWorkspace, useWorkspaces } from "@/api/workspaces";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { ErrorState, Logo, Spinner } from "@/components/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useDocumentEvents } from "@/hooks/useDocumentEvents";
@@ -45,66 +36,6 @@ function WorkspaceSwitcher({ current }: { current: string }) {
         aria-hidden
       />
     </label>
-  );
-}
-
-function UserMenu() {
-  const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const close = (e: MouseEvent) =>
-      ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-
-  if (!user) return null;
-  const initials = user.full_name
-    .split(/\s+/)
-    .map((p) => p[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        className="flex size-8 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white"
-        aria-label="Account menu"
-      >
-        {initials}
-      </button>
-      {open && (
-        <div
-          role="menu"
-          className="absolute right-0 z-30 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
-        >
-          <div className="px-3 py-2 text-sm">
-            <p className="font-medium">{user.full_name}</p>
-            <p className="truncate text-slate-500">
-              {user.is_guest ? "Guest account" : user.email}
-            </p>
-          </div>
-          <button
-            role="menuitem"
-            type="button"
-            onClick={async () => {
-              await logout();
-              navigate("/", { replace: true });
-            }}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-800"
-          >
-            <LogOut className="size-4" aria-hidden /> Sign out
-          </button>
-        </div>
-      )}
-    </div>
   );
 }
 

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useCreateWorkspace, useWorkspaces } from "@/api/workspaces";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UserMenu } from "@/components/UserMenu";
 import { TiltCard } from "@/components/TiltCard";
 import { Badge, Button, ErrorState, Field, Logo, Skeleton } from "@/components/ui";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -26,7 +27,10 @@ export function WorkspacesPage() {
     <div className="min-h-full bg-slate-50 dark:bg-slate-950">
       <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 dark:border-slate-800 dark:bg-slate-950">
         <Logo />
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+          <UserMenu />
+        </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 py-10">
         <h1 className="text-2xl font-semibold">Your workspaces</h1>

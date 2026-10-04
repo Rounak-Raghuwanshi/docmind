@@ -7,8 +7,12 @@ Multi-tenant RAG for teams: shared workspaces with roles, hybrid search with rer
 streaming answers with clickable citations, and measured retrieval quality. Built and hosted
 entirely on free tiers.
 
-**[Live demo](https://YOUR-APP.vercel.app)** · **Try the demo** button, no sign-up ·
-[API docs](https://YOUR-HF-USERNAME-docmind-api.hf.space/docs)
+**[Live demo](https://docmind-three-tawny.vercel.app)** · click **Try the demo**, no sign-up ·
+[API docs](https://docmind-api-zspo.onrender.com/docs)
+
+> The live site runs in a **lite mode** built for free 512 MB hosting (keyword-led retrieval + the
+> same LLM, ~110 MB RAM). The full pipeline (ONNX embeddings + cross-encoder reranker) runs locally.
+> The first visit after 15 idle minutes takes about a minute while the free server wakes up.
 
 [![CI](https://github.com/Rounak-Raghuwanshi/docmind/actions/workflows/ci.yml/badge.svg)](https://github.com/Rounak-Raghuwanshi/docmind/actions/workflows/ci.yml)
 ![Coverage](https://img.shields.io/badge/backend%20coverage-91%25-brightgreen)
@@ -104,7 +108,7 @@ Design decisions and trade-offs, with interview-style Q&A, are in
 | ML | fastembed (ONNX, CPU): `BAAI/bge-small-en-v1.5` embeddings, `ms-marco-MiniLM-L-6-v2` cross-encoder; PyMuPDF; Tesseract OCR |
 | LLM | Any OpenAI-compatible API: Ollama locally, Groq or Gemini in production |
 | Quality | pytest (81 tests, ~91% coverage, real Postgres + Redis), Vitest + Testing Library, ruff, mypy, ESLint, Prettier |
-| Delivery | GitHub Actions → Hugging Face Spaces (Docker) + Vercel; Supabase (Postgres + Storage) |
+| Delivery | GitHub Actions CI; Render (Docker, free, lite mode) + Vercel; Supabase (Postgres + pgvector + Storage) |
 
 ## Run it locally
 
@@ -123,8 +127,8 @@ without any LLM.
 
 ## Deploy it (₹0)
 
-Supabase (Postgres + pgvector + Storage) · Hugging Face Space (API, worker and models in one
-Docker container) · Vercel (frontend, with a same-origin `/api` rewrite) · Groq (LLM).
+Supabase (Postgres + pgvector + Storage) · Render free web service (API + in-process worker,
+lite mode) · Vercel (frontend, with a same-origin `/api` rewrite) · Groq (LLM).
 Step-by-step instructions: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**. Every setting is listed in
 [docs/CONFIGURATION.md](docs/CONFIGURATION.md).
 

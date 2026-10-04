@@ -424,7 +424,7 @@ export function LandingPage() {
         DocMind · FastAPI · PostgreSQL + pgvector · Redis · React + Three.js ·{" "}
         <a
           className="underline hover:text-slate-800 dark:hover:text-slate-200"
-          href="https://github.com/YOUR_GITHUB/docmind"
+          href="https://github.com/Rounak-Raghuwanshi/docmind"
         >
           Source on GitHub
         </a>

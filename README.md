@@ -10,7 +10,7 @@ entirely on free tiers.
 **[Live demo](https://YOUR-APP.vercel.app)** · **Try the demo** button, no sign-up ·
 [API docs](https://YOUR-HF-USERNAME-docmind-api.hf.space/docs)
 
-[![CI](https://github.com/YOUR_GITHUB/docmind/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB/docmind/actions/workflows/ci.yml)
+[![CI](https://github.com/Rounak-Raghuwanshi/docmind/actions/workflows/ci.yml/badge.svg)](https://github.com/Rounak-Raghuwanshi/docmind/actions/workflows/ci.yml)
 ![Coverage](https://img.shields.io/badge/backend%20coverage-91%25-brightgreen)
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![TypeScript](https://img.shields.io/badge/typescript-strict-blue)

@@ -39,7 +39,9 @@ def decide(chunks: Sequence[_Scored], reranked: bool, cfg: GateConfig) -> Decisi
     if not chunks:
         return "refuse"
     if not reranked:
-        return "answer"  # no reranker configured: nothing to gate on
+        # Lite mode (no reranker): only answer when full-text search found real term matches;
+        # otherwise every question would reach the LLM with arbitrary nearest neighbours.
+        return "answer" if any(c.keyword_rank is not None for c in chunks) else "refuse"
     top = max((c.rerank_score for c in chunks if c.rerank_score is not None), default=None)
     if top is not None and top >= cfg.threshold:
         return "answer"

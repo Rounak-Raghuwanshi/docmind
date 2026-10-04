@@ -57,8 +57,8 @@ class HashingEmbedder:
 
     _TOKEN = re.compile(r"[a-z0-9]+")
 
-    def __init__(self, dim: int = 384) -> None:
-        self.name = "fake-hashing"
+    def __init__(self, dim: int = 384, name: str = "fake-hashing") -> None:
+        self.name = name
         self.dim = dim
 
     def _vector(self, text: str) -> list[float]:
@@ -81,6 +81,10 @@ def get_embedder() -> Embedder:
     s = get_settings()
     if s.embedding_provider == "fake":
         return HashingEmbedder(s.embedding_dim)
+    if s.embedding_provider == "hashing":
+        # Lite mode: no model in memory. Similarity = shared words, so keyword search and the
+        # LLM carry answer quality.
+        return HashingEmbedder(s.embedding_dim, name="hashing-bow-384")
     embedder = FastEmbedEmbedder(s.embedding_model, s.models_cache_dir)
     if embedder.dim != s.embedding_dim:
         raise RuntimeError(

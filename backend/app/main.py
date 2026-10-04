@@ -1,3 +1,5 @@
+import asyncio
+import contextlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -34,6 +36,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     retriever = Retriever(SessionLocal, embedder, reranker, settings)
     app.state.retriever = retriever
     app.state.chat = ChatService(SessionLocal, get_redis(), retriever, get_llm(), settings)
+    worker_task = None
+    if settings.run_worker_in_api:
+        from arq.worker import Worker
+
+        from app.workers.settings import WorkerSettings, shutdown, startup
+
+        worker = Worker(
+            functions=WorkerSettings.functions,
+            redis_settings=WorkerSettings.redis_settings,
+            on_startup=startup,
+            on_shutdown=shutdown,
+            max_jobs=1,  # tiny hosts: one document at a time
+            poll_delay=settings.worker_poll_delay_seconds,
+            handle_signals=False,  # uvicorn owns signals
+        )
+        worker_task = asyncio.create_task(worker.async_run())
+        log.info("worker running inside the API process")
     log.info(
         "api ready",
         extra={
@@ -43,6 +62,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         },
     )
     yield
+    if worker_task is not None:
+        worker_task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await worker_task
     await close_redis()
     await engine.dispose()
 

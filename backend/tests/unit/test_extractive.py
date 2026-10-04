@@ -1,4 +1,10 @@
-from app.rag.extractive import WEAK_MATCH, best_sentence, extractive_answer, stems
+from app.rag.extractive import (
+    WEAK_MATCH,
+    best_sentence,
+    extractive_answer,
+    question_coverage,
+    stems,
+)
 
 GST = (
     "6. E-way bills and e-invoicing\n\n"
@@ -33,3 +39,18 @@ def test_weak_match_says_so() -> None:
     ans = extractive_answer("GST rate on gold?", [{"content": GST}], top_score=WEAK_MATCH - 1)
     assert ans.startswith("I couldn't find a direct answer")
     assert "[1]" in ans
+
+
+def test_question_coverage_separates_related_from_off_topic() -> None:
+    tax = [
+        {
+            "content": "For transfers on or after 23 July 2024, short-term capital gains are taxed at 20%."
+        }
+    ]
+    assert question_coverage("Who won the IPL in 2024?", tax) < 0.5
+    gst = [{"content": GST}]
+    assert question_coverage("When is an e-way bill required for goods?", gst) >= 0.5
+    # without a reranker, low coverage gives an honest "couldn't find" instead of a random quote
+    assert extractive_answer("Who won the IPL in 2024?", tax, top_score=None).startswith(
+        "I couldn't find"
+    )

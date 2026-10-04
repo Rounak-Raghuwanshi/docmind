@@ -38,4 +38,6 @@ def test_agreement_outside_top_ranks_does_not_count() -> None:
 
 def test_edge_cases() -> None:
     assert decide([], True, CFG) == "refuse"
-    assert decide([C(1, None, None)], False, CFG) == "answer"  # no reranker: can't gate
+    # no reranker (lite mode): answer only when keyword search matched something
+    assert decide([C(1, 2, None)], False, CFG) == "answer"
+    assert decide([C(1, None, None), C(2, None, None)], False, CFG) == "refuse"

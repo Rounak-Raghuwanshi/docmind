@@ -9,6 +9,7 @@ then writes conversations whose citations and retrieval scores come from the rea
 retriever, plus feedback and 30 days of usage history for the analytics and insights pages.
 """
 
+import asyncio
 import random
 import re
 import uuid
@@ -21,6 +22,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db import SessionLocal
+from app.llm.base import LLMError
+from app.llm.client import get_llm
 from app.models import (
     Conversation,
     DocStatus,
@@ -33,11 +36,12 @@ from app.models import (
     WorkspaceInvite,
     WorkspaceMember,
 )
-from app.rag.citations import build_citations
+from app.rag.citations import build_citations, normalise_markers, strip_invalid_markers
 from app.rag.embedder import get_embedder
-from app.rag.extractive import extractive_answer
+from app.rag.extractive import MIN_COVERAGE, extractive_answer, question_coverage
+from app.rag.gate import GateConfig, decide
 from app.rag.ocr import tesseract_available
-from app.rag.prompts import NOT_FOUND_ANSWER
+from app.rag.prompts import NOT_FOUND_ANSWER, answer_messages
 from app.rag.reranker import get_reranker
 from app.rag.tokens import count_tokens
 from app.redis_client import get_redis
@@ -379,6 +383,7 @@ class Seeder:
         self.retriever = Retriever(SessionLocal, self.embedder, get_reranker(), self.settings)
         self.ingestor = Ingestor(SessionLocal, get_redis(), get_storage(), self.embedder)
         self.users: dict[str, User] = {}
+        self.llm = get_llm()
 
     # ---- setup ---------------------------------------------------------------------------
 
@@ -525,15 +530,37 @@ class Seeder:
         query = turn.standalone if turn and turn.standalone else question
         result = await self.retriever.search(ws.id, query)
         top = result.top_rerank_score
-        if not result.chunks or (top is not None and top < self.settings.relevance_threshold):
+        s = self.settings
+        gate = GateConfig(s.relevance_threshold, s.relevance_floor, s.relevance_agree_rank)
+        if decide(result.chunks, result.reranked, gate) == "refuse":  # live app's rule
             return NOT_FOUND_ANSWER, [], True, result
         sources = [c.as_source() for c in result.chunks]
         answer = turn.answer if turn else None
         if answer and turn and turn.expect:
             answer = renumber(answer, turn.expect, sources)
+        if not answer and s.llm_provider == "openai":
+            # Same as the live app: the LLM answers from the sources; no citation = not found.
+            llm_answer = await self._llm_answer(query, sources)
+            if llm_answer is not None:
+                citations = build_citations(llm_answer, sources)
+                if not citations:
+                    return NOT_FOUND_ANSWER, [], True, result
+                return llm_answer, citations, False, result
         if not answer:
+            # No LLM available: quote sentences, refusing when they barely cover the question.
+            if not result.reranked and question_coverage(query, sources) < MIN_COVERAGE:
+                return NOT_FOUND_ANSWER, [], True, result
             answer = extractive_answer(query, sources, top)
         return answer, build_citations(answer, sources), False, result
+
+    async def _llm_answer(self, query: str, sources: list[dict[str, object]]) -> str | None:
+        await asyncio.sleep(2.5)  # stay inside free-tier rate limits (~30 requests/min)
+        try:
+            raw = await self.llm.complete(answer_messages(query, sources), max_tokens=500)
+        except LLMError:
+            return None
+        text = normalise_markers(raw).strip()
+        return strip_invalid_markers(text, set(range(1, len(sources) + 1)))
 
     async def _chats(self, ws: Workspace, chats: list[Chat], traffic: list[str]) -> None:
         now = datetime.now(UTC)

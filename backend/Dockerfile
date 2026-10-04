@@ -24,10 +24,12 @@ COPY --chown=user pyproject.toml ./
 RUN mkdir app && touch app/__init__.py && pip install --user . && rm -rf app build *.egg-info
 
 # Bake the models into the image: no download on cold start, and no runtime HF Hub dependency.
-RUN python -c "from fastembed import TextEmbedding; \
+# Lite deployments (EMBEDDING_PROVIDER=hashing, no reranker) skip this with BAKE_MODELS=false.
+ARG BAKE_MODELS=true
+RUN if [ "$BAKE_MODELS" = "true" ]; then python -c "from fastembed import TextEmbedding; \
 from fastembed.rerank.cross_encoder import TextCrossEncoder; \
 TextEmbedding('BAAI/bge-small-en-v1.5', cache_dir='/home/user/models'); \
-TextCrossEncoder('Xenova/ms-marco-MiniLM-L-6-v2', cache_dir='/home/user/models')"
+TextCrossEncoder('Xenova/ms-marco-MiniLM-L-6-v2', cache_dir='/home/user/models')"; fi
 
 COPY --chown=user . .
 RUN pip install --user --no-deps . && chmod +x start.sh

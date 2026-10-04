@@ -14,4 +14,9 @@ if [ "${RUN_MIGRATIONS:-true}" = "true" ]; then
   alembic upgrade head
 fi
 
+if [ "${RUN_WORKER_IN_API:-false}" = "true" ]; then
+  # Single process (API + in-process worker): fits 512 MB hosts like Render's free tier.
+  exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT}" --proxy-headers --forwarded-allow-ips="*" --timeout-graceful-shutdown 20
+fi
+
 exec supervisord -c supervisord.conf

@@ -42,6 +42,25 @@ def best_sentence(question: str, text: str) -> str:
     return ranked[0][1] if ranked else text[:240]
 
 
+def question_coverage(question: str, sources: list[dict[str, Any]]) -> float:
+    """Share of the question's key words found in the best sentence of the top two sources.
+
+    Without a reranker this is the honesty check: "Who won the IPL in 2024?" against tax notes
+    matches only "2024" (1 of 3 key words), so it shouldn't be answered from them.
+    """
+    q = stems(question)
+    if not q:
+        return 0.0
+    best = 0
+    for src in sources[:2]:
+        for _, sentence in ranked_sentences(question, str(src["content"]))[:3]:
+            best = max(best, len(q & stems(sentence)))
+    return best / len(q)
+
+
+MIN_COVERAGE = 0.6  # more than half of the key words must be covered
+
+
 def weak_match_answer(question: str, sources: list[dict[str, Any]]) -> str:
     closest = best_sentence(question, str(sources[0]["content"]))
     return (
@@ -56,6 +75,8 @@ def extractive_answer(
     """Quote up to three relevant sentences from the top two sources, each cited."""
     if top_score is not None and top_score < WEAK_MATCH:
         return weak_match_answer(question, sources)
+    if top_score is None and question_coverage(question, sources) < MIN_COVERAGE:
+        return weak_match_answer(question, sources)  # no reranker: fall back on word coverage
     picked: list[tuple[str, int]] = []
     # Extra sentences must share enough words with the question; short questions need fewer.
     need = 1 if len(stems(question)) <= 2 else 2

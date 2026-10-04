@@ -58,7 +58,9 @@ class Settings(BaseSettings):
     llm_stream_usage: bool = True
 
     # Retrieval models
-    embedding_provider: Literal["fastembed", "fake"] = "fastembed"
+    # fastembed = local ONNX model (best quality, ~600 MB RAM with the reranker)
+    # hashing   = model-free bag-of-words vectors for small hosts ("lite" mode); fake = tests
+    embedding_provider: Literal["fastembed", "hashing", "fake"] = "fastembed"
     embedding_model: str = "BAAI/bge-small-en-v1.5"
     embedding_dim: int = 384
     rerank_provider: Literal["fastembed", "fake", "none"] = "fastembed"
@@ -87,6 +89,8 @@ class Settings(BaseSettings):
     ocr_dpi: int = 200
     worker_max_jobs: int = 2
     worker_poll_delay_seconds: float = 0.5
+    # Run the ARQ worker inside the API process (one process instead of two, for 512 MB hosts).
+    run_worker_in_api: bool = False
 
     # Rate limits
     rate_limit_enabled: bool = True

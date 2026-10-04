@@ -1,0 +1,41 @@
+# Render Blueprint: free "lite" deployment of the DocMind API (512 MB RAM, no card).
+# Lite mode = no local ML models (hashing embedder, no reranker), worker inside the API process,
+# Redis inside the container. Full-quality retrieval runs locally / on bigger hosts.
+# Secrets (sync: false) are entered in the Render dashboard or via the Render API.
+services:
+  - type: web
+    name: docmind-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - { key: APP_ENV, value: prod }
+      - { key: BAKE_MODELS, value: "false" }
+      - { key: EMBEDDING_PROVIDER, value: hashing }
+      - { key: RERANK_PROVIDER, value: none }
+      - { key: RUN_WORKER_IN_API, value: "true" }
+      - { key: EMBEDDED_REDIS, value: "true" }
+      - { key: RUN_MIGRATIONS, value: "true" }
+      - { key: COOKIE_SECURE, value: "true" }
+      - { key: COOKIE_SAMESITE, value: lax }
+      - { key: STORAGE_BACKEND, value: s3 }
+      - { key: S3_BUCKET, value: documents }
+      - { key: S3_REGION, value: ap-southeast-1 }
+      - { key: LLM_PROVIDER, value: openai }
+      - { key: LLM_BASE_URL, value: https://api.groq.com/openai/v1 }
+      - { key: LLM_MODEL, value: qwen/qwen3.8-27b }
+      - { key: OCR_ENABLED, value: "false" }
+      - { key: DB_POOL_SIZE, value: "3" }
+      - { key: DB_MAX_OVERFLOW, value: "2" }
+      - { key: DATABASE_URL, sync: false }
+      - { key: JWT_SECRET_KEY, sync: false }
+      - { key: S3_ENDPOINT, sync: false }
+      - { key: S3_ACCESS_KEY, sync: false }
+      - { key: S3_SECRET_KEY, sync: false }
+      - { key: LLM_API_KEY, sync: false }
+      - { key: CORS_ORIGINS, sync: false }
+      - { key: PUBLIC_APP_URL, sync: false }

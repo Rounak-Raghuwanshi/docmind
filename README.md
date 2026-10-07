@@ -19,8 +19,6 @@ entirely on free tiers.
 ![Python](https://img.shields.io/badge/python-3.12-blue)
 ![TypeScript](https://img.shields.io/badge/typescript-strict-blue)
 
-<!-- Record a 20-second GIF: upload a PDF → ask → click a citation. Save as docs/demo.gif -->
-![DocMind demo](docs/demo.gif)
 
 ---
 
@@ -58,7 +56,7 @@ passage highlighted** · conversation history with auto-generated titles · an h
 
 ## Retrieval quality
 
-Measured with [`eval/run_eval.py`](eval/README.md) on a hand-written set of 50 questions with
+Measured with `eval/run_eval.py` on a hand-written set of 50 questions with
 known answer pages, over the demo corpus.
 
 | Configuration | Hit@5 | MRR |
@@ -95,8 +93,8 @@ flowchart LR
    keyword search concurrently → RRF → rerank → relevance gate → stream the LLM answer →
    validate `[n]` citations → save the answer with timings.
 
-Design decisions and trade-offs, with interview-style Q&A, are in
-**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
+Key design decisions: hybrid retrieval with RRF, a cross-encoder relevance gate, refresh-token
+rotation with reuse detection, versioned cache keys, and SQL-level tenant isolation.
 
 ## Tech stack
 
@@ -112,8 +110,7 @@ Design decisions and trade-offs, with interview-style Q&A, are in
 
 ## Run it locally
 
-You need Python 3.12, Node 20+, and Postgres with pgvector and Redis (Homebrew or Docker). The
-full walkthrough is in **[docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)**.
+You need Python 3.12, Node 20+, and Postgres with pgvector and Redis (Homebrew or Docker).
 
 ```bash
 make setup        # venv, pip install, npm install, creates backend/.env
@@ -122,15 +119,14 @@ make seed         # demo users, documents, chats and 30 days of usage (password 
 make dev          # API :8000 · worker · web :5173
 ```
 
-Open <http://localhost:5173>. No GPU is needed, and `LLM_PROVIDER=fake` runs the whole app
-without any LLM.
+Open <http://localhost:5173>. No GPU is needed, and `LLM_PROVIDER=none` runs the whole app
+without any LLM (answers quote the best-matching sentences).
 
 ## Deploy it (₹0)
 
 Supabase (Postgres + pgvector + Storage) · Render free web service (API + in-process worker,
 lite mode) · Vercel (frontend, with a same-origin `/api` rewrite) · Groq (LLM).
-Step-by-step instructions: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**. Every setting is listed in
-[docs/CONFIGURATION.md](docs/CONFIGURATION.md).
+Deployment settings live in `render.yaml` and `frontend/vercel.json`.
 
 ## Project layout
 
@@ -150,7 +146,6 @@ frontend/src/
   features/         auth · chat · documents · workspaces · analytics
   lib/sse.ts        fetch-based SSE client (POST + auth + abort)
 eval/               run_eval.py, dataset, results
-docs/               setup, deployment, configuration, architecture
 ```
 
 ## Use cases
@@ -161,18 +156,6 @@ docs/               setup, deployment, configuration, architecture
 - **Support and on-call:** search manuals and past postmortems, and paste the citation into the ticket
 - **Platform use:** `POST /api/workspaces/{ws}/search` is retrieval-only, so a Slack bot, CLI or
   IDE plugin can reuse the same search
-
-## Documentation
-
-| | |
-| --- | --- |
-| [LOCAL_SETUP.md](docs/LOCAL_SETUP.md) · [DEPLOYMENT.md](docs/DEPLOYMENT.md) · [CONFIGURATION.md](docs/CONFIGURATION.md) | Run it, ship it, configure it |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design decisions and trade-offs |
-| [COMPLETE_GUIDE_HINGLISH.md](docs/COMPLETE_GUIDE_HINGLISH.md) | The whole approach, a feature tour and interview prep (Hinglish) |
-| [CONCEPTS_HINGLISH.md](docs/CONCEPTS_HINGLISH.md) | Every backend, frontend, AI and DevOps concept from scratch (Hinglish) |
-| [BACKEND_EXPLAINED.md](docs/BACKEND_EXPLAINED.md) | Every backend part in depth, including how RAG and the LLM are used (Hinglish) |
-| [FRONTEND_EXPLAINED.md](docs/FRONTEND_EXPLAINED.md) | Every frontend part in depth: streaming, PDF highlight, dialogs, animations, 3D (Hinglish) |
-| [HOW_AI_BUILT_THIS.md](docs/HOW_AI_BUILT_THIS.md) | How an AI coding agent was used, honestly |
 
 ## Testing
 

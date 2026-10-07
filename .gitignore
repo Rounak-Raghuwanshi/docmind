@@ -27,3 +27,7 @@ frontend/coverage/
 .DS_Store
 .idea/
 .vscode/
+
+# Documentation stays local: only the top-level README.md is published
+*.md
+!/README.md
